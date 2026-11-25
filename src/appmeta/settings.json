@@ -1,0 +1,41 @@
+{
+  "format_version": 1,
+  "version": 1,
+  "fields": {
+    "flicker": {
+      "label": "Flickper",
+      "description": "Changes amount of flicker, also might be changed with the wheel.",
+      "type": "enum",
+      "default": "calm",
+      "options": [
+        { "value": "steady", "label": "Off" },
+        { "value": "calm", "label": "Soft" },
+        { "value": "live", "label": "Strong" }
+      ]
+    },
+    "colour": {
+      "label": "Colour",
+      "type": "enum",
+      "default": "orange",
+      "options": [
+        { "value": "orange", "label": "Orange" },
+        { "value": "white", "label": "White" }
+      ]
+    },
+    "show_seconds": {
+      "label": "Seconds",
+      "type": "boolean",
+      "default": false
+    },
+    "colons": {
+      "label": "Colon",
+      "type": "enum",
+      "default": "blink",
+      "options": [
+        { "value": "on", "label": "Steady" },
+        { "value": "blink", "label": "Blink" },
+        { "value": "pulse", "label": "Pulse" }
+      ]
+    }
+  }
+}

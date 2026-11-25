@@ -1,0 +1,9 @@
+{
+  "format_version": 1,
+  "id": "me.negenii.nixie",
+  "name": "Nixie Clock",
+  "version": "1.0.0",
+  "api_version": "27.15.0",
+  "description": "A nixie-tube clock in orange or white, with three levels of flickper.",
+  "author": "negenii"
+}
