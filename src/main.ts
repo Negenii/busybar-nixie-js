@@ -62,6 +62,7 @@ interface Settings {
   level: number;
   colour: number;
   seconds: boolean;
+  hour12: boolean;
   colons: ColonMode;
 }
 
@@ -84,6 +85,7 @@ function fromSettings(v: Record<string, unknown>): Settings {
     level: level < 0 ? 1 : level,
     colour: colour < 0 ? 0 : colour,
     seconds: v.show_seconds === true,
+    hour12: v.time === "12h",
     colons: colons < 0 ? "blink" : COLON_MODES[colons],
   };
 }
@@ -121,10 +123,15 @@ async function readZone(): Promise<boolean> {
 /** Local time in whole seconds. */
 const localS = (now: number): number => Math.floor(now / 1000) + zoneS;
 
-function digits(s: number): number[] {
+/** What each tube shows at local second s, as section names use it: a digit, or "n" for the dark
+ * first tube of 12-hour time below 10 o'clock. */
+function digits(s: number, hour12: boolean): string[] {
   const day = ((s % 86400) + 86400) % 86400;
-  const h = Math.floor(day / 3600), m = Math.floor((day % 3600) / 60), x = day % 60;
-  return [Math.floor(h / 10), h % 10, Math.floor(m / 10), m % 10, Math.floor(x / 10), x % 10];
+  let h = Math.floor(day / 3600);
+  if (hour12) h = h % 12 || 12;
+  const m = Math.floor((day % 3600) / 60), x = day % 60;
+  const tens = hour12 && h < 10 ? "n" : String(Math.floor(h / 10));
+  return [tens, ...[h % 10, Math.floor(m / 10), m % 10, Math.floor(x / 10), x % 10].map(String)];
 }
 
 /** The 2 s loop whose first frame belongs at S + 0.5 s. */
@@ -169,7 +176,7 @@ type Op = { draw: Element[] } | { clear: string[] } | { poll: true };
 function main(): void {
   hideLoading();
 
-  const st: Settings = { level: 1, colour: 0, seconds: false, colons: "blink" };
+  const st: Settings = { level: 1, colour: 0, seconds: false, hour12: false, colons: "blink" };
   let seen = { level: 1, colour: 0 };
   let override: Override | null = null;
   try {
@@ -181,6 +188,7 @@ function main(): void {
     const s = fromSettings(v);
     const before = JSON.stringify(st);
     st.seconds = s.seconds;
+    st.hour12 = s.hour12;
     st.colons = s.colons;
     if (override && override.seenLevel === s.level && override.seenColour === s.colour) {
       st.level = override.level;
@@ -276,7 +284,7 @@ function main(): void {
     if (hint === "shown" && Date.now() >= hintAt) endHint();
     const count = st.seconds ? 6 : 4, loops = count - (st.seconds ? 1 : 0);
     const els = new Map<number | string, AnimElement>();
-    const d = digits(S), next = digits(S + 1);
+    const d = digits(S, st.hour12), next = digits(S + 1, st.hour12);
     const wasFull = full;
     if (full) {
       full = false;
@@ -296,7 +304,7 @@ function main(): void {
         lastColons = S;
       }
       if (LEVELS[st.level] === "live") {
-        const later = digits(S + 3);
+        const later = digits(S + 3, st.hour12);
         for (let i = 0; i < loops; i++) {
           if (pending.has(i) || els.has(i)) continue;
           if (next[i] !== d[i] || later[i] !== d[i] || Math.random() >= DIP_P) continue;

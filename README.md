@@ -12,7 +12,7 @@ Find **Nixie Clock** in the BUSY Apps Catalog and install it.
 
 On the clock, turn the wheel to change how much the tubes flickper: off, soft or strong. Press OK to switch between orange and white. Back to close the app.
 
-Setup has the rest: flickper, colour, seconds on or off and the colon (steady, blinking or pulsing).
+Setup has the rest: flickper, colour, 12 or 24 hours, seconds on or off and the colon (steady, blinking or pulsing).
 
 ## Technical guts
 

@@ -282,12 +282,19 @@ const XS6 = XS6_;
 const COLONS6 = [22, 47];
 const PERIOD_S = [36000, 3600, 600, 60, 10, 1];
 
+// 12-hour time: 1..12, and the first tube dark below 10. A dark tube is digit 10, which
+// drawGlyph skips, so the old digit still cools down and the new one heats up as usual.
+let HOUR12 = false;
+export function setHour12(on) { HOUR12 = on; }
+export const BLANK = 10;
+
 function digitsOf(localS) {
   const day = mod(localS, 86400);
-  const h = Math.floor(day / 3600);
+  let h = Math.floor(day / 3600);
+  if (HOUR12) h = h % 12 || 12;
   const m = Math.floor((day % 3600) / 60);
   const s = day % 60;
-  return [Math.floor(h / 10), h % 10, Math.floor(m / 10), m % 10, Math.floor(s / 10), s % 10];
+  return [HOUR12 && h < 10 ? BLANK : Math.floor(h / 10), h % 10, Math.floor(m / 10), m % 10, Math.floor(s / 10), s % 10];
 }
 
 /** Draw one frame into out (Uint8Array or Array of FRAME_BYTES). */
@@ -306,7 +313,8 @@ export function render(out, localS, ms, p, seconds, only = -1) {
   const next = digitsOf(localS + 1);
   for (let i = 0; i < count; i++) {
     if (only >= 0 && i !== only) continue;
-    const period = PERIOD_S[i] * 1000;
+    // in 12-hour time the first tube changes on the hour (12 to 1, 9 to 10), not every ten hours
+    const period = (i === 0 && HOUR12 ? 3600 : PERIOD_S[i]) * 1000;
     const age = mod(dayMs, period);
     const n = count - 1 - i;
     const wave = td(WAVE_MS * n * (n + 1), 2);

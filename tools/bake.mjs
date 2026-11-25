@@ -5,7 +5,7 @@
 //   the firmware chains into q (B even) or p (B odd).
 // Slot 5: t<d>, a 10 s loop starting 550 ms after digit d lights (seamless, plays on its own).
 import fs from 'node:fs';
-import { envelope, heatK, coolK, ONE, render, renderTube, presetMake, presetSetDepth, presetSetGlow, setLoop2s, digitAt, forceSputter, LAYOUT, FRAME_BYTES, W } from './render.js';
+import { envelope, heatK, coolK, ONE, render, renderTube, presetMake, presetSetDepth, presetSetGlow, setLoop2s, digitAt, forceSputter, setHour12, BLANK, LAYOUT, FRAME_BYTES, W } from './render.js';
 const [outdir, colourS, level, countS] = process.argv.slice(2);
 const COUNT = +countS;
 const colour = +colourS;
@@ -38,25 +38,37 @@ for (let i = 0; i < COUNT; i++) {
   if (COUNT === 6 && i === 5) {
     for (let d = 0; d < 10; d++) { const t0 = (BASE + d) * 1000 + 550; add('t' + d, N10, (k) => frameAt(i, t0 + Math.round(k * S10))); }
   } else {
+    // every digit and every change the tube makes over two days, in 24- and then 12-hour time;
+    // a dark tube is named n
+    const name = (d) => (d === BLANK ? 'n' : String(d));
     const digits = new Set(), changes = new Map();
-    for (let s = BASE; s < BASE + 2 * 86400; s++) {
-      const was = digitAt(i, s - 1), cur = digitAt(i, s);
-      digits.add(cur);
-      if (was !== cur) { const k = 'c' + (s % 2 ? 'b' : 'a') + was + cur; if (!changes.has(k)) changes.set(k, s); }
+    for (const hour12 of [false, true]) {
+      setHour12(hour12);
+      for (let s = BASE; s < BASE + 2 * 86400; s++) {
+        const was = digitAt(i, s - 1), cur = digitAt(i, s);
+        digits.add(cur);
+        if (was !== cur) { const k = 'c' + (s % 2 ? 'b' : 'a') + name(was) + name(cur); if (!changes.has(k)) changes.set(k, { s, hour12 }); }
+      }
     }
-    for (const d of [...digits].sort()) {
+    setHour12(false);
+    for (const d of [...digits].sort((a, b) => a - b)) {
       for (const [ph, off] of [['p', 500], ['q', 1500]]) {
         const t0 = BASE * 1000 + off;
         const steady = (k) => { const t = t0 + Math.round(k * S2); renderTube(fb, i, xs[i], d, t, p); return crop(xs[i]); };
-        add(ph + d, N2, steady);
+        add(ph + name(d), N2, steady);
         if (level === 'live') {
           p.sputter_to = sputterTo; forceSputter(t0 + 40, t0 + 130);
-          add(ph + 'x' + d, N2, steady);
+          add(ph + 'x' + name(d), N2, steady);
           forceSputter(0, 0);
         }
       }
     }
-    for (const [k, s] of changes) { const t0 = s * 1000 - 500; add(k, N2, (f) => frameAt(i, t0 + Math.round(f * S2))); }
+    for (const [k, { s, hour12 }] of changes) {
+      setHour12(hour12);
+      const t0 = s * 1000 - 500;
+      add(k, N2, (f) => frameAt(i, t0 + Math.round(f * S2)));
+    }
+    setHour12(false);
   }
   fs.writeFileSync(`${outdir}/s${i}.raw`, Buffer.concat(frames));
   fs.writeFileSync(`${outdir}/s${i}.sections.json`, JSON.stringify(sections));
